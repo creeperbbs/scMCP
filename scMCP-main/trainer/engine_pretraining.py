@@ -186,9 +186,7 @@ def train_one_epoch(
         total_steps += 1
         total_var += var
         print(f"Step {step:05d} | Rec={rec_loss.item():.4f} |  R2={r2:.3f}|var={var:.3f}")
-        # if step + 1 >= 20:   # 达到指定步数就跳出
-        #     print(f"Early stop at step {step + 1}")
-        #     break
+
     rec_avg = total_rec_loss / total_steps
     # mmd_avg = total_mmd_loss / total_steps
     r2_avg = total_r2 / total_steps
@@ -282,9 +280,7 @@ def evalute(
         total_steps += 1
 
         print(f"Step {step:05d} | Rec={rec_loss.item():.4f} |  R2={r2:.3f}")
-        # if step + 1 >= 20:  
-        #     print(f"Early stop at step {step + 1}")
-        #     break
+
     # mmd_avg = total_mmd_loss / total_steps
     r2_avg = total_r2 / total_steps
 
