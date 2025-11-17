@@ -28,5 +28,5 @@ Example about how to predict responses to unseen drugs are saved under sample/in
 ### Drug screening pipeline based on scMCP
 The pipeline is saved in sample/drug_screening.py
 
-### Large scale pretraining processing for scMCP (Will be released soon)
-This model is pretrained using about 1M perturbed cell pairs in Tahoe. A process for larger scale pretraining wil be released soon.
+### Large scale pretraining version for scMCP (Will be released soon)
+This model is pretrained using about 1M perturbed cell pairs in Tahoe. A version in larger scale pretrained wil be released soon.
