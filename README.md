@@ -1,7 +1,7 @@
-<img width="2739" height="4008" alt="Figure1" src="https://github.com/user-attachments/assets/6c974a52-a497-4782-9987-ae312abe00f8" /># Predicting unseen chemical perturbation effects by integrating multi-source prior knowledge with foundation model
+# Predicting unseen chemical perturbation effects by integrating multi-source prior knowledge with foundation model
 scMCP is a chemical perturbation framework that integrate multi-source biological prior knowledge for drug discovery.
 ## Overview of scMCP:
-<img width="2739" height="4008" alt="Figure1" src="https://github.com/user-attachments/assets/59517c90-5d58-44a9-aafb-d842bca816d2" />
+<img width="2739" height="4008" alt="Figure1" src="https://github.com/user-attachments/assets/6c974a52-a497-4782-9987-ae312abe00f8" />
 
 ## QuickStart:
 :satisfied:Requirements are shown in the requirements.txt. Please use the requirements.txt to create the environment for running scMCP.
