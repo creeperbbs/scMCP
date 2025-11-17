@@ -19,7 +19,7 @@ import yaml
 from torch_geometric.data import Data, Dataset, DataLoader
 import pickle
 import sys
-sys.path.append('/home/MBDAI206AA201/jupyter/yhz/sc/scdata/GeneCompass-main/downstream_tasks/PRCEdrug/GraphEmbedding/DrugGCL')
+sys.path.append('/DrugGCL')
 from ginet_3emb_degree import GNNDecoder, GNN,GNN_fp
 from scipy import sparse
 from scipy.stats import wasserstein_distance
