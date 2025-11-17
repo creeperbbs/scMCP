@@ -8,6 +8,7 @@ scMCP is a chemical perturbation framework that integrate multi-source biologica
 
 :satisfied:Please use the molecule fingerprint generated procession to pregenerate the embedding before inference using scMCP which will help to load faster.
 
+:satisfied:Please use the gene_list to filter out the genes that can not be identified by scMCP.
 The scMCP must conduct the following process before prediction:
 "**Gene set preprocessing**", relevant files can be found in preprocess/gene_list to reserve the co genes of 17911 in unseen datasets.
 
@@ -25,7 +26,7 @@ Example about how to predict responses to unseen drugs are saved under sample/in
 
 
 ### Drug screening pipeline based on scMCP
-The pipeline is saved in sample/pipeline.py
+The pipeline is saved in sample/drug_screening.py
 
 ### Large scale pretraining processing for scMCP (Will be released soon)
 This model is pretrained using about 1M perturbed cell pairs in Tahoe. A process for larger scale pretraining wil be released soon.
