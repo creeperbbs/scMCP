@@ -10,7 +10,6 @@ def create_scMCP(pretrained=False, **kwargs):
             'z_dimension' : 128,
             'adaptor_layer_sizes' : [128],
             'comb_dimension' : 64, 
-            #'drug_dimension': 1031,
             'drug_dimension': 768,
             'dr_rate' : 0.05,
             'n_epochs' : 100,
