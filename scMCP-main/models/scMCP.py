@@ -4,7 +4,6 @@
 # @Last Modified by:   Hongzhi Yao
 # @Last Modified time: 2025-10-16 16:33:14
 from torch_geometric.nn import SGConv
-# from .drug_gene_rotary_attention import DrugGeneAttention
 from .Performer import *
 import torch.nn as nn
 from torch_geometric.nn import SGConv
@@ -152,22 +151,7 @@ class gene_gene_operator(torch.nn.Module):
         adapt_start_layer = 0
         adapt_end_layer = 3
         buffer_size = 128
-        if self.gene_emb_adapt:
-                # self.freeze_singlecell_model()
-                self.adapt_start_layer = adapt_start_layer
-                self.adapt_end_layer = adapt_end_layer
-                self.buffer_size = buffer_size
-                self.sema_modules = nn.ModuleList()
-                hidden_list = [128,128,128]
-                for layer_id, h in enumerate(hidden_list):  
-                    sema = SEMAModules(
-                        adapt_start_layer=adapt_start_layer,  
-                        adapt_end_layer=adapt_end_layer,     
-                        d_model=h,  
-                        layer_id=layer_id, 
-                        writer=None  
-                    ).to(self.device)  #
-                    self.sema_modules.append(sema)  # 
+    
         
         self.attr_gene = False
         # self.LayerNorm1 = nn.LayerNorm(128, eps=1e-3)
@@ -201,10 +185,7 @@ class gene_gene_operator(torch.nn.Module):
     def forward(self, x,x_raw,x_indices,**kwargs):
         output = {"merged_encodings": None}
         b, n = x.shape[0],x.shape[1]
-        # _, indices = torch.sort(x, dim=1, descending=True)
-        # d, L = self.base_dim, self.top_seq_len
-        # _, top_indices = torch.topk(x, L, dim=1)
-        # raw_x=x.unsqueeze(2)
+      
         x_raw = self.token_emb(x_raw.unsqueeze(2))
         
         if self.attr_gene != False:
@@ -436,16 +417,7 @@ class scMCP(torch.nn.Module):
         
 
         self.adapt_same = False
-        if self.adapt_same:
-            self.intermediate = BertIntermediate(d_model,d_model)
-            self.bertOutput = BertOutput(d_model,d_model)
-            self.sema_module = SEMAModules(
-                adapt_start_layer=0,
-                adapt_end_layer=11,
-                d_model=d_model,
-                layer_id=1, 
-                writer=None
-            )
+       
 
 
         if model_type == 'ppi_grn_mode':
@@ -466,15 +438,7 @@ class scMCP(torch.nn.Module):
                 self.buffer_size = buffer_size
                 self.sema_modules = nn.ModuleList()
                 hidden_list = [256+d_model,d_model]
-                for layer_id, h in enumerate(hidden_list):  
-                    sema = SEMAModules(
-                        adapt_start_layer=adapt_start_layer,  
-                        adapt_end_layer=adapt_end_layer,     
-                        d_model=h,  
-                        layer_id=layer_id, 
-                        writer=None  
-                    ).to(self.device)  #
-                    self.sema_modules.append(sema)  # 
+               
     def reset_newly_added_status(self):
         self.newly_added = False
         for adapter in self.adapters:
@@ -574,15 +538,9 @@ class scMCP(torch.nn.Module):
             emb = self.gene_emb(torch.LongTensor(list(range(self.num_genes))).repeat(num_graphs, ).to(self.device))        
         emb = self.bn_emb(emb) #B*N, D
         base_emb = self.emb_trans(emb)  #B*N, D
-        #base_emb is the basic embbeding for the genes
-        #and then the drug pertubation embedding is extracted as follow:
-        # out = self.recovery_w(base_emb) #B *N, D
+ 
         out = base_emb.reshape(num_graphs, self.num_genes, -1) #B, N, D
-        # out = out.unsqueeze(-1) f* self.indv_w1 #B, N, D, 1
-        # out = torch.sum(out, axis = 2) ##B, N
-        # out = self.bn_pert_base_trans(out)#bn
-        # out = self.pert_base_trans(out)#relu
-        # out = out + x
+
         pert_emb = pert_embeddings.unsqueeze(1)
         pert_emb_repeated = pert_emb.repeat(1, 2048, 1)
         out = torch.cat((out, pert_emb_repeated), dim=2)
@@ -630,359 +588,14 @@ class scMCP(torch.nn.Module):
             emb = self.gene_emb(torch.LongTensor(list(range(self.num_genes))).repeat(num_graphs, ).to(self.device))        
         emb = self.bn_emb(emb) #B*N, D
         base_emb = self.emb_trans(emb)  #B*N, D
-        #base_emb is the basic embbeding for the genes
-        #and then the drug pertubation embedding is extracted as follow:
-        # out = self.recovery_w(base_emb) #B *N, D
+      
         out = base_emb.reshape(num_graphs, self.num_genes, -1) #B, N, D
-        # out = out.unsqueeze(-1) f* self.indv_w1 #B, N, D, 1
-        # out = torch.sum(out, axis = 2) ##B, N
-        # out = self.bn_pert_base_trans(out)#bn
-        # out = self.pert_base_trans(out)#relu
-        # out = out + x
+ 
         pert_emb = pert_embeddings.unsqueeze(1)
         pert_emb_repeated = pert_emb.repeat(1, 2048, 1)
         out = torch.cat((out, pert_emb_repeated), dim=2)
         out = self.downdecoder(out).squeeze(2)
         
-        # out = torch.cat((out),dim=1)
-        ## uncertainty head
         out = self.encoder(out)
 
-        # out = self.bn_pert_base_trans(out)
-        # out = self.bn_pert_base_trans(out)#bn
-        # out = self.pert_base_trans(out)#relu
-        # out = self.decoder(torch.cat([out,pert_embeddings,noise],dim=1))
         return pert_latent,out #B, N
-def vae_loss(recon_x, x, mu, logvar,reconstruction_function,weight=1):
-    """
-    recon_x: generating images
-    x: origin images
-    mu: latent mean
-    logvar: latent log variance
-    """
-    BCE = reconstruction_function(recon_x, x)  # mse loss
-    # loss = 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-    KLD_element = mu.pow(2).add_(logvar.exp()).mul_(-1).add_(1).add_(logvar)
-    KLD = torch.sum(KLD_element).mul_(-0.5)
-    # KL divergence
-    return BCE + KLD * weight
-    
-class Pretrain_DGFM(torch.nn.Module):
-    def __init__(self, 
-                 num_genes=17911,
-                 uncertainty=True,
-                 num_gnn_layers=None,
-                 decoder_hidden_size=None,
-                 num_gene_gnn_layers=None,
-                 input_genes_ens_ids=None,
-                 scfm_genes_ens_ids=None,
-                 drug_dim=None,
-                 drug_gene_attr =False,
-                 n_size = 20,
-                 
-                 coexpress_network=None,
-                 gene_emb_dim=128,
-                 dropout_rate=0.3,
-                 hidden_size = 200,
-                 pos_emb_graph = 'co_expression',
-                 grn_node2vec_file='/home/MBDAI206AA201/jupyter/yhz/sc/scdata/GeneCompass-main/downstream_tasks/PRCEdrug/GraphEmbedding/node2vec/emb_grn/grn_emb_total.pkl',
-                 ppi_node2vec_file='/home/MBDAI206AA201/jupyter/yhz/sc/scdata/GeneCompass-main/downstream_tasks/PRCEdrug/GraphEmbedding/node2vec/emb_ppi/ppi_emb_total.pkl',
-                 model_type = 'ppi_grn_mode'
-                ):
-        super(Pretrain_DGFM, self).__init__()
-        # self.args = args 
-#G=11350++978,N=256
-        self.device='cuda'
-        self.num_genes = num_genes
-        self.hidden_size = hidden_size
-        self.uncertainty = uncertainty
-        self.num_layers = num_gnn_layers
-        self.indv_out_hidden_size = decoder_hidden_size
-        self.num_layers_gene_pos = num_gene_gnn_layers
-        self.pert_emb_lambda = 0.2
-        self.input_genes_list = input_genes_ens_ids
-        self.scfm_genes_list = scfm_genes_ens_ids
-        self.gene_emb_adapt = True
-
-        self.coexpress_network = coexpress_network
-        try:
-            with open(grn_node2vec_file, 'rb') as handle:
-                self.grn_node2vec_embedding_dict = pickle.load(handle)
-        except ValueError:
-            import pickle5
-            with open(grn_node2vec_file, 'rb') as handle:
-                self.grn_node2vec_embedding = pickle5.load(handle)
-        try:
-            with open(ppi_node2vec_file, 'rb') as handle:
-                self.ppi_node2vec_embedding_dict = pickle.load(handle)
-        except ValueError:
-            import pickle5
-            with open(ppi_node2vec_file, 'rb') as handle:
-                self.ppi_node2vec_embedding_dict = pickle5.load(handle)
-        
-
-        self.top_seq_num = 5000   
-
-        # transformation layer
-        self.emb_trans = nn.ReLU()
-        self.pert_base_trans = nn.ReLU()
-        dr_rate = 0.3
-
-        self.drug_gene_attr = drug_gene_attr
-
-        # decoder shared MLP
-        # self.recovery_w = MLP([gene_emb_dim, hidden_size*2, hidden_size], last_layer_act='linear')
-        
-
-        self.relu = nn.ReLU()
-
-        self.bn_emb = nn.BatchNorm1d(gene_emb_dim)
-        self.bn_pert_base = nn.BatchNorm1d(hidden_size)
-        self.bn_pert_base_trans = nn.BatchNorm1d(hidden_size)
-              
-
-        self.dn_linear = nn.Sequential()
-        self.dn_linear.add_module(name="Le0", module=nn.Linear(self.num_genes, hidden_size*2, bias=False))
-        self.dn_linear.add_module(name="B0", module=nn.BatchNorm1d(hidden_size*2))
-        self.dn_linear.add_module(name="D0", module=nn.Dropout(0.3))
-        self.dn_linear.add_module(name="L0", module=nn.LeakyReLU())
-        self.dn_linear.add_module(name="Le1", module=nn.Linear(hidden_size*2, hidden_size))
-        self.dn_linear.add_module(name="B1", module=nn.BatchNorm1d(hidden_size))
-        self.dn_linear.add_module(name="D1", module=nn.Dropout(0.3))
-        # self.decoder = nn.Linear(hidden_size+drug_dim+10, self.num_genes*2)
-        # self.decoder = nn.Sequential()
-        # self.decoder.add_module(name="Ld0", module=nn.Linear(gene_emb_dim, hidden_size, bias=False))
-        # self.decoder.add_module("Nd0", module=nn.BatchNorm1d(hidden_size))
-        # self.decoder.add_module(name="Ad0", module=nn.LeakyReLU(negative_slope=0.3))
-        # self.decoder.add_module(name="Dd0", module=nn.Dropout(p=dropout_rate))
-        # self.decoder.add_module(name="Ld1", module=nn.Linear(hidden_size, self.num_genes)) 
-        # Build Decoder
-        modules = []
-
-        self.decoder_input = nn.Linear(gene_emb_dim, hidden_size*2)
-        modules.append(
-                nn.Sequential(
-                    nn.Linear(hidden_size*2,
-                                      hidden_size),
-                    nn.BatchNorm1d(hidden_size),
-                    nn.Dropout(0.3),
-                    nn.LeakyReLU()
-                    ))
-
-
-        self.decoder = nn.Sequential(*modules)
-
-        self.final_layer = nn.Sequential(
-                            nn.Linear(hidden_size,
-                                       self.num_genes)
-                            ) 
-        self.fc_mu = nn.Linear(hidden_size, self.num_genes)
-        self.fc_var = nn.Linear(hidden_size, self.num_genes)
-
-
-        if model_type == 'ppi_grn_mode':
-            self.singlecell_model = gene_gene_operator(input_genes = self.num_genes,
-                                                         grn_emb_list = self.grn_node2vec_embedding_dict, 
-                                                         ppi_emb_list =self.ppi_node2vec_embedding_dict, 
-                                                         device = self.device,
-                                                       coexpress_network = self.coexpress_network,
-                                                       gene_emb_adapt = self.gene_emb_adapt,
-                                                         output_dim=hidden_size)
-            self.pretrained = True
-        else:
-            self.pretrained = False
-            print('No Single cell model load!')
-    def encoder(self, x: torch.Tensor):
-        b,n = x.shape
-        num_graphs = x.shape[0]#number of graphs
-        ## get base gene embeddings
-        singlecell_model = self.singlecell_model(x) #B, N, D
-        emb = singlecell_model["merged_encodings"]
-        emb = emb.reshape((num_graphs * self.num_genes, -1))     
-        emb = self.bn_emb(emb) #
-        base_emb = self.emb_trans(emb)  
-        out = self.recovery_w(base_emb) #B * N, D
-        out = out.reshape(num_graphs, self.num_genes, -1) #B, N, D
-        out = torch.sum(out, axis = 1) ##B, N
-        out = self.dn_linear(x)#B, H
-        return out,singlecell_model["rd_loss"]
-    def _encode(self, x: torch.Tensor):
-        out,rd_loss = self.encoder(x)
-        mu = self.fc_mu(out)
-        log_var = self.fc_var(out)
-        return [out,mu, log_var]
-
-    def decode(self, z: torch.Tensor):
-        """
-        Maps the given latent codes
-        """
-        result = self.decoder_input(z)
-        #result = result.view(-1, 512, 2, 2)
-        result = self.decoder(result)
-        result = self.final_layer(result)
-        return result
-
-
-    
-    def encode(self, x: Tensor,repram=False):
-        """
-        Encodes the input by passing through the encoder network
-        and returns the latent codes.
-        :param input: (Tensor) Input tensor to encoder [N x C x H x W]
-        :return: (Tensor) List of latent codes
-        """
-        out, mu, log_var = self._encode(x)
-
-        if (repram==True):
-            z = self.reparameterize(mu, log_var)
-            return z
-        else:
-            return mu
-
-    def reparameterize(self, mu: Tensor, logvar: Tensor):
-        """
-        Reparameterization trick to sample from N(mu, var) from
-        N(0,1).
-        :param mu: (Tensor) Mean of the latent Gaussian [B x D]
-        :param logvar: (Tensor) Standard deviation of the latent Gaussian [B x D]
-        :return: (Tensor) [B x D]
-        """
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return eps * std + mu
-
-    def forward(self, x: Tensor, **kwargs):
-        out, mu, log_var = self._encode(x)
-        z = self.reparameterize(mu, log_var)
-        return  [self.decode(z), x, mu, log_var]
-    def loss_function(self,
-                      *args,
-                      **kwargs) -> dict:
-        """
-        Computes the VAE loss function.
-        KL(N(\mu, \sigma), N(0, 1)) = \log \frac{1}{\sigma} + \frac{\sigma^2 + \mu^2}{2} - \frac{1}{2}
-        :param args:
-        :param kwargs:
-        :return:
-         M_N = self.params['batch_size']/ self.num_train_imgs,
-        """
-        recons = args[0]
-        input = args[1]
-        mu = args[2]
-        log_var = args[3]
-
-        kld_weight = kwargs['M_N'] 
-        # Account for the minibatch samples from the dataset
-        # M_N = self.params['batch_size']/ self.num_train_imgs,
-        recons_loss =F.mse_loss(recons, input)
-
-
-        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
-
-        
-        loss = recons_loss + kld_weight * kld_loss
-        return {'loss': loss, 'Reconstruction_Loss':recons_loss, 'KLD':-kld_loss}
-
-    def sample(self,
-               num_samples:int,
-               current_device: int, **kwargs):
-        """
-        Samples from the latent space and return the corresponding
-        image space map.
-        :param num_samples: (Int) Number of samples
-        :param current_device: (Int) Device to run the model
-        :return: (Tensor)
-        """
-        z = torch.randn(num_samples,
-                        self.latent_dim)
-
-        z = z.to(current_device)
-
-        samples = self.decode(z)
-        return samples
-def train_VAE_model(model,data_loaders={},optimizer=None,n_epochs=100,scheduler=None,load=False,save_path="model_VAE.pkl",best_model_cache = "drive"):
-    
-    if(load!=False):
-        if(os.path.exists(save_path)):
-            model.load_state_dict(torch.load(save_path))           
-            return model, 0
-        else:
-            logging.warning("Failed to load existing file, proceed to the trainning process.")
-    dataset_sizes = {x: len(data_loaders[x].dataset) for x in ['train', 'val']}
-    loss_train = {}
-    
-    if best_model_cache == "memory":
-        best_model_wts = copy.deepcopy(model.state_dict())
-    else:
-        torch.save(model.state_dict(), save_path+"_bestcahce.pkl")
-        model.load_state_dict((torch.load(save_path+"_bestcahce.pkl")))
-    best_loss = np.inf
-    for epoch in range(n_epochs):
-        # Each epoch has a training and validation phase
-        for phase in ['train', 'val']:
-            if phase == 'train':
-                #optimizer = scheduler(optimizer, epoch)
-                model.train()  # Set model to training mode
-            else:
-                model.eval()  # Set model to evaluate mode
-
-            running_loss = 0.0
-
-            n_iters = len(data_loaders[phase])
-            # Iterate over data.
-            # for data in data_loaders[phase]:
-            # Iterate over data.
-            # for data in data_loaders[phase]:
-            loop = tqdm(enumerate(data_loaders[phase]), total =n_iters)
-            for batchidx, data in loop:
-                x=data['features'][0].to('cuda')
-                x.requires_grad_(True)
-                # encode and decode 
-                output = model(x)
-                # compute loss
-                recon_loss = nn.MSELoss(reduction="mean")
-
-                loss = vae_loss(output[0],output[1],output[2],output[3],recon_loss,data_loaders[phase].batch_size/dataset_sizes[phase])
-
-                # zero the parameter (weight) gradients
-                optimizer.zero_grad()
-
-                # backward + optimize only if in training phase
-                if phase == 'train':
-                    loss.backward()
-                    # update the weights
-                    optimizer.step()
-
-                # print loss statistics
-                running_loss = running_loss+loss.item()
-                loop.set_description(f'Epoch [{epoch}/{n_epochs}] [{batchidx}/{n_iters}]')
-                    #loop.set_postfix(Loss_NB=nb_loss.item(), Loss_MSE=mse_loss.item())
-                loop.set_postfix(Loss=loss.item())
-                
-            epoch_loss = running_loss / n_iters
-            #epoch_loss = running_loss / n_iters
-            
-            if phase == 'val':
-                scheduler.step()
-                
-            last_lr = scheduler.optimizer.param_groups[0]['lr']
-            loss_train[epoch,phase] = epoch_loss
-            print('{} Loss: {:.8f}. Learning rate = {}'.format(phase, epoch_loss,last_lr))
-            
-            if phase == 'val' and epoch_loss < best_loss:
-                best_loss = epoch_loss
-
-                if best_model_cache == "memory":
-                    best_model_wts = copy.deepcopy(model.state_dict())
-                else:
-                    torch.save(model.state_dict(), save_path+"_bestcahce.pkl")
-    
-    # Select best model wts if use memory to cahce models
-    if best_model_cache == "memory":
-        torch.save(best_model_wts, save_path)
-        model.load_state_dict(best_model_wts)  
-    else:
-        model.load_state_dict((torch.load(save_path+"_bestcahce.pkl")))
-        torch.save(model.state_dict(), save_path)
-
-    return model, loss_train
