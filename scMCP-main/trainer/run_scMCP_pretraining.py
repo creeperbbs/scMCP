@@ -175,13 +175,9 @@ name2id = {value:key for key,value in gene.items()}
 #  collate_fn for DataLoader: combine list of samples -> tensors
 # ---------------------------
 def collate_fn(samples):
-    """
-    samples: 来自 HF streaming 的 list[dict]
-    """
 
     B = len(samples)
 
-    # ------------ 1. tensor 化表达矩阵 ----------------------
     targets = torch.tensor(
         np.stack([s["target"].squeeze() for s in samples], axis=0),
         dtype=torch.float32
@@ -192,17 +188,15 @@ def collate_fn(samples):
         dtype=torch.float32
     )
 
-    # ------------ 2. parse cov 获取 drug, dose ------------------
     drugs = []
     doses = []
 
     for s in samples:
-        cov = s["cov"]              # "drugX|0.1|cell123"
+        cov = s["cov"]          
         cell_,drug, dose = cov.split("_")
         drugs.append(drug)
         doses.append(float(dose))
 
-    # ------------ 3.  drug+dose embedding 作为 label ----------
     # encode_drug_doses: dict[(drug,dose)] = 768 vector
     labels = []
     for drug, dose in zip(drugs, doses):
@@ -211,7 +205,6 @@ def collate_fn(samples):
 
     labels = torch.tensor(np.stack(labels, axis=0), dtype=torch.float32) # (B,768)
 
-    # ------------ 4.  top-k 基因选择 ------------------------
     top_gene_tokens_list = []
     top_gene_ids_list = []
     top_gene_idx_list = []
@@ -234,7 +227,6 @@ def collate_fn(samples):
     top_gene_tokens = torch.tensor(top_gene_tokens_list, dtype=torch.long) # (B,K)
     top_gene_indices = torch.stack(top_gene_idx_list, dim=0)               # (B,K)
 
-    # ------------ 5. 打包 batch --------------------------------
     batch = {
         "features": (controls_top, targets),
         "label": labels,  
@@ -248,9 +240,6 @@ def collate_fn(samples):
 
     return batch
 
-# ---------------------------
-#  Utilities (placeholders) - 请替换为工程内实际实现
-# ---------------------------
 def set_seed(seed: int):
     random.seed(seed)
     np.random.seed(seed)
@@ -262,9 +251,6 @@ def set_seed(seed: int):
 # ---------------------------
 from trainer.engine_pretraining import train_one_epoch,evalute  
 
-# ---------------------------
-#  Argparse
-# ---------------------------
 def get_args():
     parser = argparse.ArgumentParser("DGFM streaming training")
     parser.add_argument("--shard_root", default="/raid/MBDAI/tahoe", type=str)
@@ -385,9 +371,6 @@ def get_args():
 
     return parser.parse_args()
 
-# ---------------------------
-#  Main
-# ---------------------------
 def main():
     args = get_args()
     init_distributed_mode(args)
@@ -398,9 +381,6 @@ def main():
     global_rank = utils.get_rank()
     sampler_rank = global_rank
 
-    # ---------------------------
-    #  Dataset & DataLoader (Iterable)
-    # ---------------------------
     dataset = ParquetShardIterableDataset(
         shard_dir=args.shard_root,
         split=args.split,
@@ -437,7 +417,6 @@ def main():
     import glob
     def count_samples_for_rank(shard_root, world_size, rank):
         files = sorted(glob.glob(os.path.join(shard_root, "*.parquet")))
-        # 过滤出属于当前 rank 的 shard
         assigned = files[rank::world_size]
         total = 0
         for f in assigned:
@@ -459,28 +438,7 @@ def main():
             args.weight_decay, args.weight_decay_end, args.epochs,
             num_training_steps_per_epoch)
     print("DEBUG: rank", sampler_rank, "world_size", num_tasks)
-    # it = iter(dataset)
-    # for i in range(5):   # 打印前 5 个样本的类型和 shape / len
-    #     try:
-    #         s = next(it)
-    #     except StopIteration:
-    #         print("DEBUG: dataset exhausted immediately (no samples).")
-    #         break
-    #     except Exception as e:
-    #         print("DEBUG: dataset iterator raised:", repr(e))
-    #         break
-    #     # show types & small repr
-    #     if isinstance(s, dict):
-    #         for k,v in s.items():
-    #             if hasattr(v, "shape"):
-    #                 print(f"DEBUG sample[{i}] {k}: type={type(v)}, shape={getattr(v,'shape',None)}")
-    #             else:
-    #                 print(f"DEBUG sample[{i}] {k}: type={type(v)}, repr_len={len(repr(v))}")
-    #     else:
-    #         print("DEBUG sample:", type(s), repr(s)[:400])
-    # ---------------------------
-    #  Model / Optim / Scaler / Scheduler
-    # ---------------------------
+
 
     model = create_scMCP(pretrained=False)
     model.to(device)
