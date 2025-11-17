@@ -35,7 +35,7 @@ pf = pq.ParquetFile("/raid/MBDAI/tahoe/shard_00031.parquet")
 def dist_loss(x,y,GAMMA=1000):
         result = mmd_loss(x,y,GAMMA)
         return result
-with open('/home/MBDAI206AA201/jupyter/yhz/sc/MOMDGDP-main/dataset/gene_list.txt', 'r') as f:
+with open('gene_list.txt', 'r') as f:
     gene_list = [line.strip() for line in f if line.strip()]
 # ---------------------------
 class ParquetShardIterableDataset(IterableDataset):
@@ -127,16 +127,16 @@ def build_encode_drug_doses(dataset="sciplex",
                             num_bits=768):
 
     if dataset == "sciplex":
-        file_path = "/home/MBDAI206AA201/jupyter/yhz/sc/MOMDGDP-main/embeddings/sciplex_smiles_embeddings.pkl"
+        file_path = "sciplex_smiles_embeddings.pkl"
     elif dataset == "tagoe":
-        file_path = "/home/MBDAI206AA201/jupyter/yhz/sc/MOMDGDP-main/embeddings/Tagoe_smiles_embeddings.pkl"
+        file_path = "Tagoe_smiles_embeddings.pkl"
     else:
         raise ValueError("dataset must be sciplex or tagoe")
 
     print(f"Loading SMILES embeddings from {file_path} ...")
     with open(file_path, "rb") as f:
         smiles_emb_dict = pickle.load(f)
-    with open('/home/MBDAI206AA201/jupyter/yhz/sc/MOMDGDP-main/dataset/tahoe_drug_smiles_map.pickle', "rb") as f:
+    with open('tahoe_drug_smiles_map.pickle', "rb") as f:
         drug_smiles_map = pickle.load(f)
     drug_smiles_map = {v:k for k,v in drug_smiles_map.items()}
 
@@ -162,12 +162,12 @@ def build_encode_drug_doses(dataset="sciplex",
 
     return encode_drug_doses
 encode_drug_doses = build_encode_drug_doses(dataset="tagoe")
-file = open('/home/MBDAI206AA201/jupyter/yhz/sc/scdata/GeneCompass-main/prior_knowledge/human_mouse_tokens.pickle', 'rb')
+file = open('human_mouse_tokens.pickle', 'rb')
 id_token = pickle.load(file)
 file.close()
 import functools
 
-file = open('/home/MBDAI206AA201/jupyter/yhz/sc/scdata/GeneCompass-main/downstream_tasks/examples/Gene_id_name_dict.pickle', 'rb')
+file = open('Gene_id_name_dict.pickle', 'rb')
 gene = pickle.load(file)
 file.close()
 name2id = {value:key for key,value in gene.items()}
