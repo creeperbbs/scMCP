@@ -17,6 +17,7 @@ The scMCP must conduct the following process before prediction:
 
 ### Pretraining scMCP
 Before pretraining, preprocess adata to shard is needed which can be found in preprocess_data_npy.ipynb.
+
 Run trainer/run_scMCP_pretraining.py to begin the pretraining process.
 
 ### Perturbation prediction based on scMCP
