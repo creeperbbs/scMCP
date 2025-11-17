@@ -8,16 +8,16 @@ scMCP is a chemical perturbation framework that integrate multi-source biologica
 
 :satisfied:Please use the molecule fingerprint generated procession to pregenerate the embedding before inference using scMCP which will help to load faster.
 
-:satisfied:Please use the gene_list to filter out the genes that can not be identified by scMCP.
 The scMCP must conduct the following process before prediction:
-"**Gene set preprocessing**", relevant files can be found in preprocess/gene_list to reserve the co genes of 17911 in unseen datasets.
+"**Gene set preprocessing**", relevant files can be found in data/gene_list to reserve the co genes of 17911 in unseen datasets.
 
 "**Knowledge emmbedding**", relevant files can be found in embeddings. PPI and GRN embedding are save in embeddings/grn and embedding/ppi Gene graph networks for GO pathway embedding can be found in models/graph_networks.py
 
 "**Molecule emmbedding**", relevant files can be found in drugs.
 
-
-
+### Pretraining scMCP
+Before pretraining, preprocess adata to shard is needed which can be found in preprocess_data_npy.ipynb.
+Run trainer/run_scMCP_pretraining.py to begin the pretraining process.
 
 ### Perturbation prediction based on scMCP
 
