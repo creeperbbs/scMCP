@@ -30,9 +30,9 @@ def create_scMCP(pretrained=False, **kwargs):
     num_similar_genes_co_express_graph = 50
     
     
-    with open('/home/MBDAI206AA201/jupyter/yhz/sc/MOMDGDP-main/dataset/gene_list.txt', 'r') as f:
+    with open('gene_list.txt', 'r') as f:
         gene_list = [line.strip() for line in f if line.strip()]
-    data_path = '/home/MBDAI206AA201/jupyter/yhz/sc/MOMDGDP-main/embeddings/'
+    data_path = 'embeddings/'
     dataset_name = config['dataset']
     split = config['split_key']
     train_gene_set_size = len(gene_list)
