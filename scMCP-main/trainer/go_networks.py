@@ -121,7 +121,7 @@ def get_coexpression_network_from_train(adata, threshold, k, data_path, data_nam
         out[np.isnan(out)] = 0
         out = np.abs(out)
         rows, _ = out.shape
-        out_sort_idx = np.argsort(out)[:, -21:]  # 等价于 [:, -k:]
+        out_sort_idx = np.argsort(out)[:, -21:] 
         out_sort_val = np.sort(out)[:, -21:]
 
         df_g = []
