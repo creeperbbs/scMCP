@@ -35,11 +35,8 @@ from sklearn.metrics import r2_score, mean_squared_error
 from torch import autocast
 from sklearn.metrics.pairwise import cosine_similarity
 from data.DGFM_Dataset import  AnnDataset,DrugDoseAnnTokenDataset
-# from data.Dataset import  DrugDoseAnnDataset,DrugDoseAnnTokenDataset
-from models.DGFM import DGFM
 from models.DA import Discriminator, GeneratorDA, GeneratorAD
 from trainer.loss import mmd_loss
-# from models.PRnet import PRnet
 from ._utils import train_valid_test,train_valid_test_no_dose
 from .co_express_networks import get_similarity_network,GeneSimNetwork
 from torch.distributions import RelaxedBernoulli
@@ -140,27 +137,7 @@ def train_one_epoch(
             )
             nb_sample = sample_ziln_fn(zi_prob, log_normal_dist, device,truncate_max=1e4 )
 
-            # tau = 0.5
-            # rb = RelaxedBernoulli(
-            #     temperature=tau,
-            #     probs=torch.clamp(1 - zi_prob, 1e-6, 1-1e-6)
-            # )
-            # mask_soft = rb.rsample()
-            # eps = torch.randn_like(gene_mean)
-            # sample_soft = mask_soft * (gene_mean + gene_scale * eps)
-
-            # ctrl_zi_prob = torch.sigmoid(ctrl_zi)
-            # rb_ctrl = RelaxedBernoulli(
-            #     temperature=tau,
-            #     probs=torch.clamp(1 - ctrl_zi_prob, 1e-6, 1-1e-6)
-            # )
-            # mask_ctrl = rb_ctrl.rsample()
-            # eps_ctrl = torch.randn_like(ctrl_mean)
-            # ctrl_soft = mask_ctrl * (ctrl_mean + ctrl_scale * eps_ctrl)
-
-            # both_real = torch.cat([target, x_raw], dim=0)
-            # both_gen = torch.cat([sample_soft, ctrl_soft], dim=0)
-            # mmd_loss = dist_loss(both_real, both_gen)
+        
 
             loss = rec_loss
 
