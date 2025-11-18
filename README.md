@@ -15,10 +15,10 @@ The scMCP must conduct the following process before prediction:
 
 "**Molecule emmbedding**", relevant files can be found in drugs.
 
-### Pretraining scMCP
-Before pretraining, preprocess adata to shard is needed which can be found in preprocess_data_npy.ipynb.
+### Training scMCP
+Before training, preprocess adata to shard is needed which can be found in preprocess_data_npy.ipynb.
 
-Run trainer/run_scMCP_pretraining.py to begin the pretraining process.
+Run trainer/run_scMCP_pretraining.py to begin the training process.
 
 ### Perturbation prediction based on scMCP
 
@@ -29,5 +29,5 @@ Example about how to predict responses to unseen drugs are saved under sample/in
 ### Drug screening pipeline based on scMCP
 The pipeline is saved in sample/drug_screening.py
 
-### Large scale pretraining version for scMCP (Will be released soon)
-This model is pretrained using about 1M perturbed cell pairs in Tahoe. A version in larger scale pretrained wil be released soon.
+### Large scale trained version for scMCP (Will be released soon)
+This model is trained using about 1M perturbed cell pairs in Tahoe. A version in larger scale trained wil be released soon.
