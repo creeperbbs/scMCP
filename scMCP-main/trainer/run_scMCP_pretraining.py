@@ -31,7 +31,7 @@ import pickle
 from trainer._utils import NativeScalerWithGradNormCount as NativeScaler
 from data._utils import load_smiles_from_path_embedding_drug_dose_encoder
 import pyarrow.parquet as pq
-pf = pq.ParquetFile("/raid/MBDAI/tahoe/shard_00031.parquet")
+pf = pq.ParquetFile("shard_00031.parquet")
 def dist_loss(x,y,GAMMA=1000):
         result = mmd_loss(x,y,GAMMA)
         return result
