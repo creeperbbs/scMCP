@@ -56,8 +56,8 @@ def create_scMCP(pretrained=False, **kwargs):
                 drug_dim=config['drug_dimension'],
                      hidden_size = config['z_dimension'],
                 pos_emb_graph = config['pos_emb_graph'],
-                     grn_node2vec_file='/home/MBDAI206AA201/jupyter/yhz/sc/scdata/GeneCompass-main/downstream_tasks/PRCEdrug/GraphEmbedding/node2vec/emb_grn/grn_emb_total.pkl',
-                     ppi_node2vec_file='/home/MBDAI206AA201/jupyter/yhz/sc/scdata/GeneCompass-main/downstream_tasks/PRCEdrug/GraphEmbedding/node2vec/emb_ppi/ppi_emb_total.pkl',
+                     grn_node2vec_file='/emb_grn/grn_emb_total.pkl',
+                     ppi_node2vec_file='/emb_ppi/ppi_emb_total.pkl',
                      model_type = 'ppi_grn_mode')
     if pretrained:
         checkpoint = torch.load(kwargs["init_ckpt"], map_location="cpu")
