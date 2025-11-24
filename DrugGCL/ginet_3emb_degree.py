@@ -130,7 +130,7 @@ class GNN(nn.Module):
         self.device = device or torch.device('cpu')
         self.atom_emb_dim = atom_emb_dim
         self.bond_emb_dim = bond_emb_dim
-        # 原子类型嵌入
+        # embedding for atoms
         self.x_embedding1 = nn.Embedding(num_atom_type, atom_emb_dim)
         self.x_embedding2 = nn.Embedding(num_chirality_tag, atom_emb_dim)
         self.x_embedding3 = nn.Embedding(num_hybridization_tag, atom_emb_dim)
@@ -139,7 +139,7 @@ class GNN(nn.Module):
         self.x_embedding6 = nn.Embedding(num_formal_charge+1, atom_emb_dim)
         self.x_embedding7 = nn.Embedding(num_implicit_valence+1, atom_emb_dim)
 
-        # 边类型嵌入
+        # embedding for edges
         self.edge_embedding1 = nn.Embedding(num_bond_type, bond_emb_dim)
         self.edge_embedding2 = nn.Embedding(num_bond_direction, bond_emb_dim)
         self.edge_embedding3 = nn.Embedding(3, bond_emb_dim)
@@ -148,7 +148,7 @@ class GNN(nn.Module):
         layers_sizes = [atom_emb_dim] + [emb_dim for layer in range(num_layer-1)] + [emb_dim]
         for input_size in layers_sizes:
             self.out_layers.append(nn.Linear(input_size, emb_dim))
-        # 初始化卷积层
+        # init conv
         self.gnns = nn.ModuleList()
         self.batch_norms = nn.ModuleList()
         for _ in range(num_layer-1):
