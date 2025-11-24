@@ -21,7 +21,7 @@ from .graph_networks import GeneGINet
 import sys
 sys.path.append("/GeneCompass-main/")
 from collections import OrderedDict
-from genecompass import BertForMaskedLM, BertForSequenceClassification,BertForMaskedLMWithSEMA
+from genecompass import BertForMaskedLM, BertForSequenceClassification
 from genecompass.utils import load_prior_embedding  
 
 
@@ -84,27 +84,7 @@ class FeedForward(nn.Module):
         x = self.dropout(x)
         x = self.w2(x)
         return x
-class TransformerLayer(nn.Module):
-    def __init__(self, d_model, nheads, hidden_dim=1024, dropout=0.3) -> None:
-        super().__init__()
 
-        self.attention = SelfAttention(d_model)
-
-        self.norm = nn.ModuleList([
-            copy.deepcopy(nn.LayerNorm(d_model)) for _ in range(2)
-        ])
-
-        self.fc = Chunk(8, FeedForward(d_model,d_model, mult = 1, dropout = dropout, glu = True), along_dim = 1)
-
-        self.dropout = nn.Dropout(dropout)
-    
-    def forward(self, q, k, v):
-        attn = self.attention(q, context=k)
-
-        x = self.dropout(self.norm[0](attn + q))
-        f = self.fc(x)
-        x = self.dropout(self.norm[1](x + f))
-        return x
 class QuickGELU(nn.Module):
     def forward(self, x: torch.Tensor):
         return x * torch.sigmoid(1.702 * x)    
@@ -160,21 +140,8 @@ class gene_gene_operator(torch.nn.Module):
         dim = 1
 
         dr_rate = 0.3
-        if self.attr_gene==True:
-            self.top_gene_gene_attn = nn.ModuleList([
-            TransformerLayer(128, 4, 64, dr_rate) 
-                for _ in range(2)
-            ])
-            self.low_gene_gene_attn = nn.ModuleList([
-            TransformerLayer(128, 4, 32, dr_rate) 
-                for _ in range(1)
-            ])
+
         self.output_dim = output_dim
-        # if self.output_dim != 200:
-        #     try:
-        #         self.feedforward = nn.Linear(self.scfm.base_dim, self.output_dim)
-        #     except AttributeError:
-        #         self.feedforward = nn.Linear(scfm_hyper_params['dim'], self.output_dim)
         self.concat_embeddings = nn.Sequential(OrderedDict([
                     ("cat_fc", nn.Linear(768+128+128, 768)),
                     ("cat_ln", nn.LayerNorm(768)),
@@ -360,19 +327,15 @@ class scMCP(torch.nn.Module):
         dr_rate = 0.3
 
         self.drug_gene_attr = drug_gene_attr
-        if self.drug_gene_attr != False:
-            self.top_drug_gene_attn = DrugGeneAttention(128, 128, n_layers=2, n_heads=4, pf_dim=256,
-                                                    dropout=dropout_rate, device="cuda")
-            self.low_drug_gene_attn = DrugGeneAttention(128, 128, n_layers=1, n_heads=4, pf_dim=64,
-                                                    dropout=dropout_rate, device="cuda")
+     
         # decoder shared MLP
         self.recovery_w = MLP([gene_emb_dim, hidden_size*2, hidden_size], last_layer_act='linear')
 
 
         self.relu = nn.ReLU()
 
-        checkpoint_path = '/home/MBDAI206AA201/jupyter/yhz/sc/scdata/GeneCompass-main/pretrained_models/GeneCompass_Base/'
-        self.bert = BertForMaskedLMWithSEMA.from_pretrained(
+        checkpoint_path = 'GeneCompass_Base/'
+        self.bert = BertForMaskedLM.from_pretrained(
             checkpoint_path,
             knowledges=knowledges,
             ignore_mismatched_sizes=True,
@@ -431,43 +394,9 @@ class scMCP(torch.nn.Module):
         else:
             self.pretrained = False
             print('No Single cell model load!')
-        if self.gene_emb_adapt:
-                # self.freeze_singlecell_model()
-                self.adapt_start_layer = adapt_start_layer
-                self.adapt_end_layer = adapt_end_layer
-                self.buffer_size = buffer_size
-                self.sema_modules = nn.ModuleList()
-                hidden_list = [256+d_model,d_model]
-               
-    def reset_newly_added_status(self):
-        self.newly_added = False
-        for adapter in self.adapters:
-            adapter.newly_added = False
 
-    def freeze_functional(self):
-        adapter_ls = self.adapters
-        for adapter in adapter_ls:
-            for param in adapter.functional.parameters():
-                param.requires_grad = False
-                param._grad = None
-        if self.new_router is not None:
-            self.fix_router()
-        for param in self.router.parameters():
-            param.requires_grad = False
-            param._grad = None
-    def freeze_singlecell_model(self):
-        if hasattr(self, 'singlecell_model') and self.singlecell_model is not None:
-            for param in self.singlecell_model.parameters():
-                param.requires_grad = False
-            print("all singlecell_model parameters is freezed")
-    def freeze_rd(self):
-        adapter_ls = self.adapters
-        for adapter in adapter_ls:
-            if adapter.rd is not None:
-                for param in adapter.rd.parameters():
-                    param.requires_grad = False
-                    param._grad = None
-                adapter.rd_loss_record.updating = False
+ 
+
     def freeze_pretrained_modules(self):
         for param in self.singlecell_model.parameters():
                 param.requires_grad = True  
@@ -487,36 +416,7 @@ class scMCP(torch.nn.Module):
                 param.requires_grad = True    
         for param in self.downdecoder.parameters():
                 param.requires_grad = True  
-        # for param in self.intermediate.parameters():
-        #         param.requires_grad = True  
-        # for param in self.bertOutput.parameters():
-        #         param.requires_grad = True  
-        # for param in self.sema_module.parameters():
-        #         param.requires_grad = True  
-#         for param in self.dag.parameters():
-#                 param.requires_grad = False  
-#         for module in [self.bn_emb, self.emb_trans,self.comb_encoder]:
-#             if module is not None:
-#                 for param in module.parameters():
-#                     param.requires_grad = False
 
-#         # if hasattr(self, 'comb_encoder'):
-#         #     for param in self.comb_encoder.parameters():
-#         #         param.requires_grad = True  
-#         for sema in self.dag.singlecell_model.sema_modules:
-#             for param in sema.parameters():
-#                 param.requires_grad = True  
-#         for sema in self.sema_modules:
-#             for param in sema.parameters():
-#                 param.requires_grad = True  
-#         trainable_modules = [
-#             self.recovery_w, 
-#             self.pert_base_trans, self.bn_pert_base_trans
-#         ]
-#         for module in trainable_modules:
-#             if module is not None:
-#                 for param in module.parameters():
-#                     param.requires_grad = False
 
     def forward(self, x_token: torch.Tensor,x_indices: torch.Tensor,x_raw: torch.Tensor,x_value: torch.Tensor, c: torch.Tensor, noise: torch.Tensor):
         batch_size = x_token.size(0)
